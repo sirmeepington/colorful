@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Colorful.Discord": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

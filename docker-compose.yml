@@ -1,0 +1,33 @@
+version: '3.4'
+
+services:
+  colorful.web:
+    image: ${DOCKER_REGISTRY-}colorfulweb
+    build:
+      context: .
+      dockerfile: Colorful.Web/Dockerfile
+    environment:
+      - DISCORD_APP_CLIENT_ID=${DISCORD_APP_CLIENT_ID}
+      - DISCORD_APP_CLIENT_SECRET=${DISCORD_APP_CLIENT_SECRET}
+      - RABBIT_HOST=${RABBIT_HOST}
+      - RABBIT_USER=${RABBIT_USER}
+      - RABBIT_PASS=${RABBIT_PASS}
+  
+  colorful.discord:
+    image: ${DOCKER_REGISTRY-}colorfuldiscord
+    build:
+      context: .
+      dockerfile: Colorful.Discord/Dockerfile
+    environment:
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - RABBIT_HOST=${RABBIT_HOST}
+      - RABBIT_USER=${RABBIT_USER}
+      - RABBIT_PASS=${RABBIT_PASS}
+
+  rabbitmq.service:
+    image: masstransit/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 20s
+      retries: 10
