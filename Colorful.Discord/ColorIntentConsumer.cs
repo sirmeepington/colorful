@@ -46,7 +46,7 @@ namespace Colorful.Discord
                     return;
                 }
 
-                List<DiscordRole> colorRoles = member.Roles.Where(x => Colorful.HEX_COLOR_REGEX.IsMatch(x.Name)).ToList();
+                List<DiscordRole> colorRoles = member.Roles.Where(x => Color.HEX_COLOR_REGEX.IsMatch(x.Name)).ToList();
                 foreach(DiscordRole cRole in colorRoles)
                 {
                     await member.RevokeRoleAsync(cRole);

@@ -23,7 +23,7 @@ namespace Colorful.Discord
         [Description("Gives a color role from the given hex. Creates the role if it does not exist. Moves new roles as high as possible.")]
         public async Task RoleColor(CommandContext ctx, string hexColor)
         {
-            if (!Colorful.HEX_COLOR_REGEX.IsMatch(hexColor))
+            if (!Color.HEX_COLOR_REGEX.IsMatch(hexColor))
             {
                 await ctx.RespondAsync("Please specify a hex color, hashtag included (`#FFFFFF`).");
                 return;
@@ -44,7 +44,7 @@ namespace Colorful.Discord
         [Description("Shows the color given from the hex code.")]
         public async Task ShowColor(CommandContext ctx, string hexColor) 
         {
-            if (!Colorful.HEX_COLOR_REGEX.IsMatch(hexColor))
+            if (!Color.HEX_COLOR_REGEX.IsMatch(hexColor))
             {
                 await ctx.RespondAsync("Please specify a hex color, hashtag included (`#FFFFFF`).");
                 return;

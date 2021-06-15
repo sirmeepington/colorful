@@ -15,7 +15,7 @@ namespace Colorful.Discord
 {
     public class Colorful
     {
-        public static readonly Regex HEX_COLOR_REGEX = new Regex(@"^#?([A-Fa-f0-9]{6})$");
+        
 
         private ColorfulCommands _events;
 

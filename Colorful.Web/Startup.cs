@@ -1,15 +1,17 @@
+using Colorful.Web.Services;
+using DSharpPlus;
+using MassTransit;
+using MassTransit.RabbitMqTransport;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace Colorful
+namespace Colorful.Web
 {
     public class Startup
     {
@@ -24,6 +26,45 @@ namespace Colorful
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddRazorPages();
+
+            services.AddMassTransit(opt =>
+            {
+                opt.UsingRabbitMq((context, config) => InitRabbit(context, config));
+            });
+
+            services.AddMassTransitHostedService();
+
+            services.AddAuthorization();
+
+            services.AddSingleton<DiscordService>();
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            })
+                .AddCookie(cookieOpt =>
+                {
+                    cookieOpt.ExpireTimeSpan = TimeSpan.FromDays(7);
+                    cookieOpt.Cookie.Name = "Discord_OAuth";
+                    cookieOpt.LoginPath = "/signin";
+                    cookieOpt.LogoutPath = "/signout";
+                })
+                .AddDiscord(opt =>
+                {
+                    opt.ClientId = Environment.GetEnvironmentVariable("DISCORD_APP_CLIENT_ID");
+                    opt.ClientSecret = Environment.GetEnvironmentVariable("DISCORD_APP_CLIENT_SECRET");
+                    opt.Scope.Add("guilds");
+                    opt.AccessDeniedPath = "/";
+                });
+        }
+
+        private void InitRabbit(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator config)
+        {
+            config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"), "/", settings =>
+            {
+                settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
+                settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -45,11 +86,14 @@ namespace Colorful
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapRazorPages();
+                endpoints.MapControllerRoute(
+                    name: "default",
+                    pattern: "{controller=Home}/{action=Index}/{id?}");
             });
         }
     }

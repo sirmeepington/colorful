@@ -1,9 +1,13 @@
 ﻿using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Colorful.Common
 {
     public class Color
     {
+
+        public static readonly Regex HEX_COLOR_REGEX = new Regex(@"^#?([A-Fa-f0-9]{6})$");
+
         public byte Red { get; set; }
 
         public byte Green { get; set; }
