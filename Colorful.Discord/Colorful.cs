@@ -68,10 +68,11 @@ namespace Colorful.Discord
 
         }
 
-        private Task Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs e)
+        private async Task Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs e)
         {
             CheckUnused(sender);
-            return Task.CompletedTask;
+
+            await sender.UpdateStatusAsync(new DiscordActivity() { ActivityType = ActivityType.Playing, Name = "@ clrful.xyz"});
         }
 
         private async Task CheckUnused(DiscordClient client)
