@@ -2,17 +2,25 @@
 
 namespace Colorful.Common
 {
+    /// <summary>
+    /// An object implementing the <see cref="IColorIntent"/> message
+    /// interface.
+    /// </summary>
     public class ColorIntent : IColorIntent
     {
-
+        /// <inheritdoc/>
         public ulong Guild { get; set; }
 
+        /// <inheritdoc/>
         public Color Color { get; set; }
 
-        public ulong User { get; set; }
+        /// <inheritdoc/>
+        public ulong UserId { get; set; }
 
-        public ulong Message { get; set; }
+        /// <inheritdoc/>
+        public ulong MessageId { get; set; }
 
-        public ulong Channel { get; set; }
+        /// <inheritdoc/>
+        public ulong ChannelId { get; set; }
     }
 }

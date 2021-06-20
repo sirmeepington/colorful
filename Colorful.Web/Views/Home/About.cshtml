@@ -1,0 +1,42 @@
+﻿<style>
+    .about {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        flex-direction: column;
+    }
+
+    .about > span, .about > p {
+        color: white;
+        font-weight: 300;
+    }
+
+    .about > * {
+        padding-bottom: 1rem;
+    }
+</style>
+
+<div class="about">
+    <span class="display-1 text-light">
+        About
+    </span>
+
+    <span class="lead text-light">
+        The Bot
+    </span>
+    <p>
+        This bot exists as there's not really any good implementation dedicated to color roles.
+        <br />
+        The site allows for the viewing and setting of your color role.
+    </p>
+    <span class="lead text-light">
+        Automatic Clean-Up
+    </span>
+    <p>
+        Every 5 minutes or so, the bot will scan the roles in your servers and remove any unused color roles.
+        <br/>
+        A role is classed as unused when it has nobody assigned to it. 
+        <br/>This <b>ONLY</b> touches roles that match the color regular expression, e.g. #FFEEFF or #1039EE. It will <b>NEVER</b> delete your other roles.
+    </p>
+</div>

@@ -3,19 +3,26 @@
 *@
 
 @model Colorful.Web.Models.ColorIndexViewModel
+@{
+    ViewData["Title"] = "Guild Selector";
+}
 
 <style>
     .serverGrid {
-        display: grid;
-        grid-auto-flow: row;
-        grid-template-columns: 33% 34% 33%;
-        justify-items: center;
-        grid-gap: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1em;
+        justify-content: center;
     }
 
     .serverGrid > a {
         color: black;
+        text-align: center;
         text-decoration: none;
+    }
+
+    .title {
+        text-align: center;
     }
 
     img {
@@ -29,11 +36,11 @@
 
 <div class="col-12">
     <div class="row justify-content-center">
-        <h1>Choose a Server</h1>
+        <h1 class="display-4 text-light title">Choose a Server</h1>
     </div>
 
     <div class="row justify-content-center">
-        
+
         <div class="container serverGrid">
             @foreach (var server in Model.Guilds)
             {
@@ -43,7 +50,7 @@
                             <img src="@server.IconUrl" />
                         </div>
                         <div>
-                            <span>@server.Name</span>
+                            <span class="lead text-light" style="text-align:center;">@server.Name</span>
                         </div>
                     </div>
                 </a>

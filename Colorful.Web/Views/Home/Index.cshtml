@@ -1,8 +1,14 @@
 ﻿@{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <img src="~/img/colorbotlogo.png" style="width: 20em; height:20em;" />
+    <p class="display-1 text-light">Colorful</p>
+    <p style="padding-bottom:2em;" class="lead text-light">A lightweight Discord color bot.</p>
+    <div>
+        <a class="btn btn-primary" asp-action="Invite" asp-controller="Home">Invite to Server</a>
+        <a class="btn btn-primary" asp-action="About" asp-controller="Home">About</a>
+    </div>
+
 </div>

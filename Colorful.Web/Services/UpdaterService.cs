@@ -1,8 +1,5 @@
 ﻿using Colorful.Common;
 using MassTransit;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Colorful.Web.Services
@@ -21,10 +18,10 @@ namespace Colorful.Web.Services
 
             await _messageBus.Publish<IColorIntent>(new ColorIntent()
             {
-                Channel = 0,
-                Color = new Color(hex),
+                ChannelId = 0,
+                Color = hex == "#000000" ? new Color("#111111") : new Color(hex),
                 Guild = guild,
-                User = user
+                UserId = user
             });
 
             return true;

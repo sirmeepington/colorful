@@ -2,7 +2,6 @@
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
-using DSharpPlus.Exceptions;
 using MassTransit;
 using MassTransit.RabbitMqTransport;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,17 +76,16 @@ namespace Colorful.Discord
 
         private async Task CheckUnused(DiscordClient client)
         {
-            await Task.Delay(TimeSpan.FromSeconds(30));
             while (true)
             {
                 Console.WriteLine("Attempting to remove unused color roles.");
                 try
                 {
                     await RemoveUnused(client);
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
-                    Console.WriteLine("Removing unused colors failed:");
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine($"Removing unused colors failed: {ex.Message}");
                 }
                 Console.WriteLine("Finished removing unused roles.");
                 await Task.Delay(TimeSpan.FromMinutes(5));
@@ -97,7 +95,7 @@ namespace Colorful.Discord
 
         private async Task RemoveUnused(DiscordClient client)
         {
-            foreach(ulong gid in client.Guilds.Keys)
+            foreach (ulong gid in client.Guilds.Keys)
             {
                 var guild = await client.GetGuildAsync(gid);
                 await CleanGuildRoles(guild);
@@ -125,11 +123,11 @@ namespace Colorful.Discord
 
         private void InitRabbit(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator config)
         {
-            config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"),"/",settings =>
-            {
-                settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
-                settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
-            });
+            config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"), "/", settings =>
+              {
+                  settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
+                  settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
+              });
 
             config.ReceiveEndpoint(endpoint =>
             {

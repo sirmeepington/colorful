@@ -22,4 +22,8 @@
     <ProjectReference Include="..\Colorful.Common\Colorful.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\img\" />
+  </ItemGroup>
+
 </Project>

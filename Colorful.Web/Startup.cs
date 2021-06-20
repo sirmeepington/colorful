@@ -1,9 +1,8 @@
+using Colorful.Web.Models.Webhook;
 using Colorful.Web.Services;
-using DSharpPlus;
 using MassTransit;
 using MassTransit.RabbitMqTransport;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -38,6 +37,12 @@ namespace Colorful.Web
 
             services.AddSingleton<IDiscordService,DiscordService>();
 
+            services.AddSingleton<Webhook>(x => 
+                    new Webhook(
+                        ulong.Parse(Environment.GetEnvironmentVariable("WEBHOOK_ID")),
+                        Environment.GetEnvironmentVariable("WEBHOOK_TOKEN")
+                        ));
+
             services.AddScoped<IUpdaterService,UpdaterService>();
 
             services.AddAuthentication(options =>
@@ -47,7 +52,7 @@ namespace Colorful.Web
                 .AddCookie(cookieOpt =>
                 {
                     cookieOpt.ExpireTimeSpan = TimeSpan.FromDays(7);
-                    cookieOpt.Cookie.Name = "Discord_OAuth";
+                    cookieOpt.Cookie.Name = "Colorful_Discord_Token";
                     cookieOpt.LoginPath = "/signin";
                     cookieOpt.LogoutPath = "/signout";
                 })
@@ -58,6 +63,8 @@ namespace Colorful.Web
                     opt.Scope.Add("guilds");
                     opt.AccessDeniedPath = "/";
                 });
+
+            services.AddCors();
         }
 
         private void InitRabbit(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator config)
@@ -78,7 +85,7 @@ namespace Colorful.Web
             }
             else
             {
-                app.UseExceptionHandler("/Error");
+                app.UseExceptionHandler("/");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
@@ -87,6 +94,7 @@ namespace Colorful.Web
             app.UseStaticFiles();
 
             app.UseRouting();
+            app.UseCors();
 
             app.UseAuthentication();
             app.UseAuthorization();

@@ -6,28 +6,13 @@
     <title>@ViewData["Title"] - Colorful</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" />
-
-    <style>
-        .identity {
-            align-items: center;
-            justify-content: center;
-            display: flex;
-            margin-right: 1em;
-        }
-
-        .identity > img {
-            margin-right: 0.5em;
-            width: 2em;
-            height: 2em;
-            border-radius: 75%;
-        }
-    </style>
 </head>
-<body>
+<body class="bg-dark">
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
             <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">Colorful</a>
+                <img class="logo" src="~/img/colorbotlogo.png" />
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">Colorful</a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -35,10 +20,10 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link text-light" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Color" asp-action="Index">Color Role</a>
+                            <a class="nav-link text-light" asp-controller="Color" asp-action="Index">Guilds</a>
                         </li>
 
                     </ul>
@@ -48,17 +33,17 @@
                         @if (User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Authentication" asp-action="SignOutCurrentUser">Sign Out</a>
+                                <a class="nav-link text-light" asp-controller="Authentication" asp-action="SignOutCurrentUser">Sign Out</a>
                             </li>
                             <li class="nav-item identity">
                                 <img src="@User.Claims.Where(x => x.Type == AspNet.Security.OAuth.Discord.DiscordAuthenticationConstants.Claims.AvatarUrl).FirstOrDefault()?.Value" />
-                                <span>@User.Claims.Where(x => x.Type == System.Security.Claims.ClaimTypes.Name).FirstOrDefault()?.Value</span>
+                                <span class="text-light">@User.Claims.Where(x => x.Type == System.Security.Claims.ClaimTypes.Name).FirstOrDefault()?.Value</span>
                             </li>
                         }
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Authentication" asp-action="SignIn">Sign In</a>
+                                <a class="nav-link text-light" asp-controller="Authentication" asp-action="SignIn">Sign In</a>
                             </li>
                         }
                     </ul>
@@ -71,12 +56,6 @@
             @RenderBody()
         </main>
     </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2021 - Colorful - <a asp-area="" asp-page="/Privacy">Privacy</a>
-        </div>
-    </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

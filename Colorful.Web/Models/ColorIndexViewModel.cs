@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace Colorful.Web.Models
 {
+    /// <summary>
+    /// A view model for the <see cref="Web.Controllers.ColorController"/>
+    /// index page.
+    /// </summary>
     public class ColorIndexViewModel
     {
 

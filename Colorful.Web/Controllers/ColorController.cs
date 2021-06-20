@@ -1,11 +1,11 @@
 ﻿using Colorful.Common;
 using Colorful.Web.Models;
 using Colorful.Web.Models.DiscordApi;
+using Colorful.Web.Models.Webhook;
 using Colorful.Web.Services;
 using DSharpPlus.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -20,11 +20,13 @@ namespace Colorful.Web.Controllers
     {
         private readonly IUpdaterService _updaterService;
         private readonly IDiscordService _discordService;
+        private readonly Webhook _webhook;
 
-        public ColorController(IDiscordService discordService, IUpdaterService updaterService)
+        public ColorController(IDiscordService discordService, IUpdaterService updaterService, Webhook webhook)
         {
             _discordService = discordService;
             _updaterService = updaterService;
+            _webhook = webhook;
         }
 
         public async Task<IActionResult> Index()
@@ -91,6 +93,19 @@ namespace Colorful.Web.Controllers
         {
             if (!ModelState.IsValid)
                 return RedirectToAction(nameof(Guild), new { guildId = model.GuildId});
+
+            if (HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) != model.UserId.ToString())
+            {
+                await _webhook.Send($"User {User.FindFirstValue(ClaimTypes.Name)} ({User.FindFirstValue(ClaimTypes.NameIdentifier)}) has fucked about with the user id.");
+                return RedirectToAction(nameof(AuthenticationController.SignOutCurrentUser), "Authentication");
+            }
+
+            var guilds = await _discordService.GetGuildsInCommon(model.UserId);
+            if (!guilds.Any(x => x.Id == model.GuildId))
+            {
+                await _webhook.Send($"User {User.FindFirstValue(ClaimTypes.Name)} ({User.FindFirstValue(ClaimTypes.NameIdentifier)}) has fucked about with the guild id.");
+                return RedirectToAction(nameof(AuthenticationController.SignOutCurrentUser), "Authentication");
+            }
 
             string roleColor = model.NewColor;
             if (!Color.HEX_COLOR_REGEX.IsMatch(roleColor))

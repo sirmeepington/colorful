@@ -2,10 +2,31 @@
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
 @model Colorful.Web.Models.GuildColorViewModel
+@{
+    ViewData["Title"] = Model.Guild.Name;
+}
+@{
+    bool noRole = Model.Role == null;
+    string clr = string.IsNullOrEmpty(Model.ForceColor) ? (noRole ? "#FFFFFF" : Model.Role.Name) : Model.ForceColor;
+}
 
 <style>
-    img {
+    .server-icon {
         border-radius: 15%;
+        border: 2px solid white;
+    }
+
+    .colorblock {
+        background-color: @clr;
+        border: 2px solid white;
+        margin: 0.5em;
+        border-radius: 0.55rem
+    }
+
+    .colorblock > span {
+        color:@clr; 
+        filter:invert(100%);
+        -webkit-filter:invert(100%);
     }
 
     form > * {
@@ -14,40 +35,37 @@
 </style>
 
 <div class="col-12">
-    <div class="row justify-content-center" style="padding-top:2em; padding-bottom:1em;">
-        <h1>Server Info</h1>
+    <div class="row justify-content-center" style="">
+        <span class="display-3 text-light">Server Info</span>
     </div>
     <div class="row justify-content-center" style="padding-top:2em; padding-bottom:1em;">
         <div>
             <div class="d-flex justify-content-center">
-                <img src="@Model.Guild.IconUrl" />
+                <img class="server-icon" src="@Model.Guild.IconUrl" />
             </div>
             <div>
-                <span>@Model.Guild.Name</span>
+                <span class="lead text-light">@Model.Guild.Name</span>
             </div>
         </div>
     </div>
-    @{
-        bool noRole = Model.Role == null;
-        string clr = string.IsNullOrEmpty(Model.ForceColor) ? (noRole ? "#FFFFFF" : Model.Role.Name) : Model.ForceColor;
-    }
     <div class="row justify-content-center" style="height:200px;">
         <div style="display: grid; grid-template-rows: 30% 60%; grid-template-columns: 100%; width:100%">
-            <div style="background-color:@clr; border: 1px solid black; margin:0.5em;" class="d-flex justify-content-center align-items-center">
-                <span style="color:@clr; filter:invert(100%); -webkit-filter:invert(100%);">
-                    @if (string.IsNullOrEmpty(Model.ForceColor) && noRole) {
-                        <span>No Role</span>
-                    } else {
-                        <span>Current Color</span>
-                    }
-                </span>
+            <div class="colorblock d-flex justify-content-center align-items-center">
+                @if (string.IsNullOrEmpty(Model.ForceColor) && noRole)
+                {
+                    <span>No Role</span>
+                }
+                else
+                {
+                    <span>Current Color</span>
+                }
             </div>
             <form class="d-flex justify-content-center align-items-center" asp-action="UpdateColor">
-                    <label for="colorPicker">Choose a Color</label>
-                    <input type="hidden" asp-for="GuildId" value="@Model.Guild.Id" />
-                    <input type="hidden" asp-for="UserId" value="@Model.User.Id" />
-                    <input type="color" id="colorPicker" asp-for="NewColor" style="width:30%; height:60%;" />
-                    <input type="submit" />
+                <label for="colorPicker" class="form-label text-light">Choose a Color</label>
+                <input type="hidden" asp-for="GuildId" value="@Model.Guild.Id" />
+                <input type="hidden" asp-for="UserId" value="@Model.User.Id" />
+                <input type="color" class="form-control-color form-control" id="colorPicker" asp-for="NewColor" value="@clr" style="width:30%; height:60%;" />
+                <input class="btn btn-primary" type="submit" />
             </form>
         </div>
     </div>

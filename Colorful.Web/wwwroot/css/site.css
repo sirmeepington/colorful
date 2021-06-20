@@ -35,6 +35,31 @@ html {
   }
 }
 
+.identity {
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    margin-right: 1em;
+}
+
+.identity > img {
+    margin-right: 0.5em;
+    width: 2em;
+    height: 2em;
+    border-radius: 75%;
+}
+
+.logo {
+    width: 2.5em;
+    height: 2.5em;
+    border-radius: 75%;
+    margin-right: 1em;
+}
+
+.bg-dark {
+    background-color: #23272a!important;
+}
+
 .border-top {
   border-top: 1px solid #e5e5e5;
 }

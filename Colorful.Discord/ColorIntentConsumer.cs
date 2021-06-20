@@ -26,16 +26,16 @@ namespace Colorful.Discord
                 Color color = msg.Color;
 
                 DiscordGuild guild = await _client.GetGuildAsync(msg.Guild);
-                DiscordMember member = await guild.GetMemberAsync(msg.User);
+                DiscordMember member = await guild.GetMemberAsync(msg.UserId);
 
                 DiscordChannel channel = null;
                 DiscordMessage message = null;
 
-                bool canFindDiscord = msg.Channel != 0 && msg.Message != 0;
+                bool canFindDiscord = msg.ChannelId != 0 && msg.MessageId != 0;
                 if (canFindDiscord)
                 {
-                    channel = await _client.GetChannelAsync(msg.Channel);
-                    message = await channel.GetMessageAsync(msg.Message);
+                    channel = await _client.GetChannelAsync(msg.ChannelId);
+                    message = await channel.GetMessageAsync(msg.MessageId);
                 }
 
                 (bool created, DiscordRole role) = await GetOrCreateRole(color, guild);
@@ -46,10 +46,11 @@ namespace Colorful.Discord
                 }
 
                 List<DiscordRole> colorRoles = member.Roles.Where(x => Color.HEX_COLOR_REGEX.IsMatch(x.Name)).ToList();
-                foreach(DiscordRole cRole in colorRoles)
+                foreach (DiscordRole cRole in colorRoles)
                 {
                     await member.RevokeRoleAsync(cRole);
                 }
+
                 await member.GrantRoleAsync(role);
                 if (canFindDiscord)
                 {
@@ -79,18 +80,19 @@ namespace Colorful.Discord
                 role = await guild.CreateRoleAsync(
                     name: color.Hex,
                     color: new DiscordColor(color.Red, color.Green, color.Blue),
-                    reason: "Color Role");
-
-                var botMember = await guild.GetMemberAsync(_client.CurrentUser.Id);
-                await role.ModifyPositionAsync(botMember.Hierarchy - 1);
-
-                return (true, role);
+                    reason: "Color Role"
+                );
             }
             catch
             {
                 Console.WriteLine("Failed to create role for color " + color + " in guild: " + guild.Name);
                 return (false, null);
             }
+
+            var botMember = await guild.GetMemberAsync(_client.CurrentUser.Id);
+            await role.ModifyPositionAsync(botMember.Hierarchy - 1);
+
+            return (true, role);
         }
     }
 }

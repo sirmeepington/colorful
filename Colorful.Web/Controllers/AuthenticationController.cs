@@ -14,24 +14,13 @@ namespace Colorful.Web.Controllers
     public class AuthenticationController : Controller
     {
         [HttpGet("~/signin")]
-        public IActionResult SignIn() {
-            var user = HttpContext.User;
-            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            var nickname = user.FindFirstValue(ClaimTypes.Name);
-
-            return Challenge(new AuthenticationProperties { RedirectUri = "/" }, "Discord");
-        }
+        public IActionResult SignIn() => Challenge(new AuthenticationProperties { RedirectUri = "/" }, "Discord");
 
         [HttpGet("~/signout")]
         [HttpPost("~/signout")]
         [Authorize]
-        public IActionResult SignOutCurrentUser()
-        {
-            // Instruct the cookies middleware to delete the local cookie created
-            // when the user agent is redirected from the external identity provider
-            // after a successful authentication flow (e.g Google or Facebook).
-            return SignOut(new AuthenticationProperties { RedirectUri = "/" },
+        public IActionResult SignOutCurrentUser() =>
+            SignOut(new AuthenticationProperties { RedirectUri = "/" },
                 CookieAuthenticationDefaults.AuthenticationScheme);
-        }
     }
 }

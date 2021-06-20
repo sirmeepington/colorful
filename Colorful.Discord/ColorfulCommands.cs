@@ -31,13 +31,16 @@ namespace Colorful.Discord
             }
             Color color = new Color(hexColor);
 
+            if (color.Hex == "#000000") // Discord does NOT like #000000, it resets it to no color.
+                color = new Color("#111111");
+
             await Bus.Publish<IColorIntent>(new ColorIntent() 
             {
                 Guild = ctx.Guild.Id,
-                User = ctx.User.Id,
+                UserId = ctx.User.Id,
                 Color = color,
-                Channel = ctx.Channel.Id,
-                Message = ctx.Message.Id
+                ChannelId = ctx.Channel.Id,
+                MessageId = ctx.Message.Id
             });
         }
 
