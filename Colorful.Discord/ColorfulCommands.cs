@@ -21,6 +21,7 @@ namespace Colorful.Discord
         [Command("role")]
         [Aliases("rolecolor","colorrole")]
         [Description("Gives a color role from the given hex. Creates the role if it does not exist. Moves new roles as high as possible.")]
+        [Cooldown(1, 30d, CooldownBucketType.User)]
         public async Task RoleColor(CommandContext ctx, string hexColor)
         {
             if (!Color.HEX_COLOR_REGEX.IsMatch(hexColor))
@@ -42,6 +43,7 @@ namespace Colorful.Discord
 
         [Command("color")]
         [Description("Shows the color given from the hex code.")]
+        [Cooldown(1, 10d, CooldownBucketType.User)]
         public async Task ShowColor(CommandContext ctx, string hexColor) 
         {
             if (!Color.HEX_COLOR_REGEX.IsMatch(hexColor))

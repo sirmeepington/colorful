@@ -11,9 +11,9 @@ namespace Colorful.Discord
 {
     public class ColorIntentConsumer : IConsumer<IColorIntent>
     {
-        private DiscordShardedClient _client;
+        private DiscordClient _client;
 
-        public ColorIntentConsumer(DiscordShardedClient client)
+        public ColorIntentConsumer(DiscordClient client)
         {
             _client = client;
         }
@@ -25,8 +25,7 @@ namespace Colorful.Discord
                 IColorIntent msg = context.Message;
                 Color color = msg.Color;
 
-                DiscordClient client = _client.ShardClients.Values.Random();
-                DiscordGuild guild = await client.GetGuildAsync(msg.Guild);
+                DiscordGuild guild = await _client.GetGuildAsync(msg.Guild);
                 DiscordMember member = await guild.GetMemberAsync(msg.User);
 
                 DiscordChannel channel = null;
@@ -35,7 +34,7 @@ namespace Colorful.Discord
                 bool canFindDiscord = msg.Channel != 0 && msg.Message != 0;
                 if (canFindDiscord)
                 {
-                    channel = await client.GetChannelAsync(msg.Channel);
+                    channel = await _client.GetChannelAsync(msg.Channel);
                     message = await channel.GetMessageAsync(msg.Message);
                 }
 
@@ -89,6 +88,7 @@ namespace Colorful.Discord
             }
             catch
             {
+                Console.WriteLine("Failed to create role for color " + color + " in guild: " + guild.Name);
                 return (false, null);
             }
         }

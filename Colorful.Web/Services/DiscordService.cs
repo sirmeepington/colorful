@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Colorful.Web.Services
 {
-    public class DiscordService
+    public class DiscordService : IDiscordService
     {
         private readonly DiscordRestClient _restClient;
         private readonly HttpClient _httpClient;
@@ -23,7 +23,7 @@ namespace Colorful.Web.Services
             _restClient = new DiscordRestClient(
                     new DiscordConfiguration() { Token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN") });
             _httpClient = new HttpClient();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bot",Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN"));
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bot", Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN"));
         }
 
         public async Task<List<DiscordGuild>> GetGuildsInCommon(ulong userId)
@@ -33,7 +33,7 @@ namespace Colorful.Web.Services
             List<DiscordGuild> sharedGuilds = new List<DiscordGuild>();
             foreach (var guild in guilds)
             {
-                var members = await _restClient.ListGuildMembersAsync(guild.Id,null,null);
+                var members = await _restClient.ListGuildMembersAsync(guild.Id, null, null);
                 if (members.Any(x => x.Id == userId))
                 {
                     sharedGuilds.Add(guild);
@@ -56,10 +56,10 @@ namespace Colorful.Web.Services
 
             var guildRoles = await _restClient.GetGuildRolesAsync(guild);
 
-            foreach(var roleId in obj.Roles)
+            foreach (var roleId in obj.Roles)
             {
                 DiscordRole role = guildRoles.FirstOrDefault(x => x.Id == roleId);
-                if (role == null)
+                if (role == null || !Color.HEX_COLOR_REGEX.IsMatch(role.Name))
                     continue;
                 return role;
             }

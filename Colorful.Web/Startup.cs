@@ -36,7 +36,9 @@ namespace Colorful.Web
 
             services.AddAuthorization();
 
-            services.AddSingleton<DiscordService>();
+            services.AddSingleton<IDiscordService,DiscordService>();
+
+            services.AddScoped<IUpdaterService,UpdaterService>();
 
             services.AddAuthentication(options =>
             {
