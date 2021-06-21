@@ -12,8 +12,16 @@
 
 <h2>Features</h2>
   
-🖌️ <b>Dynamic Roles.</b> Automatically creates color roles and moves as high as possible to show on users.
+🖌️ <b>Dynamic Roles.</b> Automatically creates color roles and hoists them to show on users.
 
-🧹 <b>Automatic cleanup.</b> Cleans up color roles that aren't used.
+🧹 <b>Automatic cleanup.</b> Removes color roles that aren't used at a set intervals.
 
-🌐 <b>Web Interface.</b> Web interface allows for the viewing and assigning of color role per-server.
+🌐 <b>Web Interface.</b> To view and assign color role per-server.
+
+<h2>Programmer Talk</h2>
+
+Uses RabbitMQ via Mass Transit to communicate between Web and Discord projects.
+
+Uses Discord OAuth2 to gather guilds in common.
+
+Applications running in Docker containers with docker-compose container orchestration.
