@@ -31,7 +31,6 @@ namespace Colorful.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
-
             string userIdStr = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
             ulong userId = ulong.Parse(userIdStr);
             List<DiscordGuild> guilds = await _discordService.GetGuildsInCommon(userId);
@@ -46,13 +45,7 @@ namespace Colorful.Web.Controllers
             ColorIndexViewModel model = new ColorIndexViewModel()
             {
                 Guilds = basicInfo,
-                User = new CurrentUser()
-                {
-                    AvatarUrl = HttpContext.User.FindFirstValue(Claims.AvatarUrl),
-                    Discriminator = ushort.Parse(HttpContext.User.FindFirstValue(Claims.Discriminator)),
-                    Id = userId,
-                    Username = HttpContext.User.FindFirstValue(ClaimTypes.Name)
-                }
+                User = CreateUserFromHttpContext(userId, HttpContext.User),
             };
 
             return View(model);
@@ -73,18 +66,32 @@ namespace Colorful.Web.Controllers
             {
                 Guild = guild,
                 Role = role,
-                User = new CurrentUser()
-                {
-                    AvatarUrl = HttpContext.User.FindFirstValue(Claims.AvatarUrl),
-                    Discriminator = ushort.Parse(HttpContext.User.FindFirstValue(Claims.Discriminator)),
-                    Id = userId,
-                    Username = HttpContext.User.FindFirstValue(ClaimTypes.Name)
-                },
+                User = CreateUserFromHttpContext(userId, HttpContext.User),
                 ForceColor = TempData["Color"] == null ? string.Empty : TempData["Color"].ToString()
             };
 
             TempData["Color"] = null;
             return View(model);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="CurrentUser"/> object from the 
+        /// <see cref="ControllerBase.HttpContext"/>'s <see cref="ClaimsPrincipal"/>
+        /// object.
+        /// </summary>
+        /// <param name="userId">The Discord UserId of the user.</param>
+        /// <param name="contextUser">A <see cref="ClaimsPrincipal"/> with the 
+        /// user's OAuth information.</param>
+        /// <returns>A constructed <see cref="CurrentUser"/> object.</returns>
+        private CurrentUser CreateUserFromHttpContext(ulong userId, ClaimsPrincipal contextUser) 
+        {
+            return new CurrentUser()
+            {
+                AvatarUrl = contextUser.FindFirstValue(Claims.AvatarUrl),
+                Discriminator = ushort.Parse(contextUser.FindFirstValue(Claims.Discriminator)),
+                Id = userId,
+                Username = contextUser.FindFirstValue(ClaimTypes.Name)
+            };
         }
 
         [HttpPost]
@@ -94,17 +101,9 @@ namespace Colorful.Web.Controllers
             if (!ModelState.IsValid)
                 return RedirectToAction(nameof(Guild), new { guildId = model.GuildId});
 
-            if (HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) != model.UserId.ToString())
+            if (!await CheckValidity(model))
             {
-                await _webhook.Send($"User {User.FindFirstValue(ClaimTypes.Name)} ({User.FindFirstValue(ClaimTypes.NameIdentifier)}) has fucked about with the user id.");
-                return RedirectToAction(nameof(AuthenticationController.SignOutCurrentUser), "Authentication");
-            }
-
-            var guilds = await _discordService.GetGuildsInCommon(model.UserId);
-            if (!guilds.Any(x => x.Id == model.GuildId))
-            {
-                await _webhook.Send($"User {User.FindFirstValue(ClaimTypes.Name)} ({User.FindFirstValue(ClaimTypes.NameIdentifier)}) has fucked about with the guild id.");
-                return RedirectToAction(nameof(AuthenticationController.SignOutCurrentUser), "Authentication");
+                return await SendWarning(User);
             }
 
             string roleColor = model.NewColor;
@@ -114,6 +113,27 @@ namespace Colorful.Web.Controllers
             await _updaterService.UpdateColorRole(roleColor, model.UserId, model.GuildId);
             TempData["Color"] = roleColor;
             return RedirectToAction(nameof(Guild), new { guildId = model.GuildId });
+        }
+
+        private async Task<bool> CheckValidity(GuildColorViewModel model)
+        {
+            if (HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) != model.UserId.ToString())
+                return false;
+
+            var guilds = await _discordService.GetGuildsInCommon(model.UserId);
+            return guilds.Any(x => x.Id == model.GuildId);
+        }
+
+        /// <summary>
+        /// Sends a webhook warning about a user that is messing with the form
+        /// data.
+        /// </summary>
+        /// <returns>A <see cref="RedirectToActionResult"/> which logs the
+        /// current user out of the session.</returns>
+        private async Task<IActionResult> SendWarning(ClaimsPrincipal user)
+        {
+            await _webhook.Send($"User {user.FindFirstValue(ClaimTypes.Name)} ({user.FindFirstValue(ClaimTypes.NameIdentifier)}) has messed with Ids.");
+            return RedirectToAction(nameof(AuthenticationController.SignOutCurrentUser), "Authentication");
         }
 
     }
