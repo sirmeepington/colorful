@@ -114,12 +114,41 @@ namespace Colorful.Discord
         private async Task<bool> ValidatePermissions(IntentContext context)
         {
             var perms = context.Guild.Permissions;
-            if (!perms.HasValue || perms.Value.HasPermission(Permissions.ManageRoles))
+            bool canManageRoles = perms == null ? await AnyRoleCanManageRoles(context) : perms.Value.HasPermission(Permissions.ManageRoles);
+            if (!canManageRoles)
             {
                 Console.WriteLine($"Can't Manage Roles in {context.Guild.Name} so I can't create the color role.");
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Checks if any of the roles that the bot has contains 
+        /// either the <see cref="Permissions.ManageRoles"/> or 
+        /// <see cref="Permissions.Administrator"/> permissions.
+        /// <br/>
+        /// This is used when the bot's role is not accessible,
+        /// e.g. when the invite is changed to not specify permissions.
+        /// </summary>
+        /// <param name="context">The <see cref="IntentContext"/> for
+        /// this color intent.</param>
+        /// <returns>Whether or not any role the bot has 
+        /// can manage roles.</returns>
+        private async Task<bool> AnyRoleCanManageRoles(IntentContext context)
+        {
+            var mem = await context.Guild.GetMemberAsync(_client.CurrentUser.Id);
+            bool hasManageRoles = false;
+            foreach (var role in mem.Roles)
+            {
+                if (role.CheckPermission(Permissions.ManageRoles) == PermissionLevel.Allowed
+                    || role.CheckPermission(Permissions.Administrator) == PermissionLevel.Allowed)
+                {
+                    hasManageRoles = true;
+                    break;
+                }
+            }
+            return hasManageRoles;
         }
 
         private async Task<List<DiscordRole>> RemovePreviousRoles(DiscordMember member)
