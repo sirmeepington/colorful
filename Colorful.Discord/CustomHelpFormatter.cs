@@ -6,6 +6,11 @@ using System.Text;
 
 namespace Colorful.Discord
 {
+     /// <summary>
+     /// A custom command help formatter.
+     /// <br/>
+     /// Mostly taken from the DSharpPlus website with different formatting.
+     /// </summary>
     public class CustomHelpFormatter : BaseHelpFormatter
     {
         protected StringBuilder _strBuilder;

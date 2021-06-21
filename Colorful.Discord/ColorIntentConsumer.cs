@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace Colorful.Discord
 {
+    /// <summary>
+    /// Mass Transit consumer for hte <see cref="IColorIntent"/> message type.
+    /// </summary>
     public class ColorIntentConsumer : IConsumer<IColorIntent>
     {
         private DiscordClient _client;
@@ -18,15 +21,28 @@ namespace Colorful.Discord
             _client = client;
         }
 
+        /// <summary>
+        /// Consumes the given <see cref="IColorIntent"/> object.
+        /// </summary>
+        /// <param name="context">The consumer context.</param>
         public async Task Consume(ConsumeContext<IColorIntent> context)
         {
             try
             {
                 IColorIntent msg = context.Message;
                 Color color = msg.Color;
+                DiscordGuild guild;
+                DiscordMember member;
 
-                DiscordGuild guild = await _client.GetGuildAsync(msg.Guild);
-                DiscordMember member = await guild.GetMemberAsync(msg.UserId);
+                try
+                {
+                    guild = await _client.GetGuildAsync(msg.Guild);
+                    member = await guild.GetMemberAsync(msg.UserId);
+                } catch
+                {
+                    Console.WriteLine($"Can't find guild or member specified: {msg.Guild} - {msg.UserId}");
+                    return;
+                }
 
                 DiscordChannel channel = null;
                 DiscordMessage message = null;
@@ -34,9 +50,27 @@ namespace Colorful.Discord
                 bool canFindDiscord = msg.ChannelId != 0 && msg.MessageId != 0;
                 if (canFindDiscord)
                 {
-                    channel = await _client.GetChannelAsync(msg.ChannelId);
-                    message = await channel.GetMessageAsync(msg.MessageId);
+                    try
+                    {
+                        channel = await _client.GetChannelAsync(msg.ChannelId);
+                        message = await channel.GetMessageAsync(msg.MessageId);
+                    } catch
+                    {
+                        Console.WriteLine("Can't find the channel or message the intent was created from. Returning to silent.");
+                        canFindDiscord = false;
+                    }
                 }
+
+                if (!guild.Permissions.Value.HasPermission(Permissions.ManageRoles))
+                {
+                    if (canFindDiscord)
+                    {
+                        await message.RespondAsync("I can't manage roles. Please fix this.");
+                    }
+                    Console.WriteLine($"Can't Manage Roles in {guild.Name} so I can't create the color role {color}");
+                    return;
+                }
+
 
                 (bool created, DiscordRole role) = await GetOrCreateRole(color, guild);
                 if (role == null && canFindDiscord)
@@ -48,7 +82,13 @@ namespace Colorful.Discord
                 List<DiscordRole> colorRoles = member.Roles.Where(x => Color.HEX_COLOR_REGEX.IsMatch(x.Name)).ToList();
                 foreach (DiscordRole cRole in colorRoles)
                 {
-                    await member.RevokeRoleAsync(cRole);
+                    try
+                    {
+                        await member.RevokeRoleAsync(cRole);
+                    } catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to remove previous role: {cRole.Name}. Msg: {ex.Message}");
+                    }
                 }
 
                 await member.GrantRoleAsync(role);

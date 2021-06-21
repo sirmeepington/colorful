@@ -27,7 +27,7 @@ namespace Colorful.Discord
             DiscordClient discord = new DiscordClient(new DiscordConfiguration()
             {
                 Token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN"),
-                Intents = DiscordIntents.All,
+                Intents = DiscordIntents.All, // Discord does not know how to manage their intents properly.
                 TokenType = TokenType.Bot,
                 AlwaysCacheMembers = false
             });

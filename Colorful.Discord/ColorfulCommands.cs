@@ -13,11 +13,22 @@ using Color = Colorful.Common.Color;
 
 namespace Colorful.Discord
 {
+    /// <summary>
+    /// Command class for use with DSharpPlus.CommandsNext
+    /// </summary>
     public class ColorfulCommands : BaseCommandModule
     {
-
+        /// <summary>
+        /// Mass Transit Bus created via DI.
+        /// </summary>
         public IBusControl Bus { private get; set; }
 
+        /// <summary>
+        /// Assigns a role color to the user from the <paramref name="hexColor"/> specified.
+        /// </summary>
+        /// <param name="ctx">The command's context, populated via DSharpPlus</param>
+        /// <param name="hexColor">A hex color string that fits the 
+        /// <see cref="Color.HEX_COLOR_REGEX"/> regex.</param>
         [Command("role")]
         [Aliases("rolecolor","colorrole")]
         [Description("Gives a color role from the given hex. Creates the role if it does not exist. Moves new roles as high as possible.")]
@@ -44,6 +55,12 @@ namespace Colorful.Discord
             });
         }
 
+        /// <summary>
+        /// Shows a color image from the <paramref name="hexColor"/> specified.
+        /// </summary>
+        /// <param name="ctx">The command context, populated via DSharpPlus</param>
+        /// <param name="hexColor">A hex string that matches the
+        /// <see cref="Color.HEX_COLOR_REGEX"/> regex.</param>
         [Command("color")]
         [Description("Shows the color given from the hex code.")]
         [Cooldown(1, 10d, CooldownBucketType.User)]
