@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 namespace Colorful.Web.Services
 {
+    /// <inheritdoc cref="IUpdaterService" />
     public class UpdaterService : IUpdaterService
     {
         private readonly IBusControl _messageBus;
@@ -13,7 +14,9 @@ namespace Colorful.Web.Services
             _messageBus = messageBus;
         }
 
-        public async Task<bool> UpdateColorRole(string hex, ulong user, ulong guild)
+
+        /// <inheritdoc />
+        public async Task UpdateColorRole(string hex, ulong user, ulong guild)
         {
 
             await _messageBus.Publish<IColorIntent>(new ColorIntent()
@@ -23,8 +26,6 @@ namespace Colorful.Web.Services
                 Guild = guild,
                 UserId = user
             });
-
-            return true;
 
         }
 

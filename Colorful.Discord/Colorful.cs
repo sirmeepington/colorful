@@ -16,7 +16,7 @@ namespace Colorful.Discord
 {
     public class Colorful
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             Colorful colorful = new Colorful();
             colorful.MainAsync().GetAwaiter().GetResult();
@@ -24,37 +24,16 @@ namespace Colorful.Discord
 
         private async Task MainAsync()
         {
-            DiscordClient discord = new DiscordClient(new DiscordConfiguration()
-            {
-                Token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN"),
-                Intents = DiscordIntents.All,
-                TokenType = TokenType.Bot,
-                AlwaysCacheMembers = false
-            });
-
             ServiceCollection services = new ServiceCollection();
-            services.AddMassTransit(opt =>
-            {
-                opt.UsingRabbitMq((context, config) => InitRabbit(context, config));
-            });
-            services.AddSingleton(discord);
-            services.AddScoped<ColorIntentConsumer>();
-            ServiceProvider provider = services.BuildServiceProvider();
+            ConfigureServices(services);
+            ServiceProvider serviceProvider = services.BuildServiceProvider();
 
-            var commands = discord.UseCommandsNext(new CommandsNextConfiguration()
-            {
-                EnableDms = false,
-                StringPrefixes = new[] { "c!" },
-                EnableMentionPrefix = false,
-                Services = provider
-            });
+            var discord = serviceProvider.GetRequiredService<DiscordClient>();
+            IBusControl bus = serviceProvider.GetRequiredService<IBusControl>();
 
-            commands.RegisterCommands(Assembly.GetExecutingAssembly());
-            commands.SetHelpFormatter<CustomHelpFormatter>();
-
+            InitDiscordCommands(serviceProvider);
             discord.Ready += Ready;
 
-            IBusControl bus = provider.GetRequiredService<IBusControl>();
             try
             {
                 await bus.StartAsync();
@@ -66,6 +45,44 @@ namespace Colorful.Discord
                 await bus.StopAsync();
             }
 
+        }
+
+        /// <summary>
+        /// Initialises DSharpPlus' CommandsNext module.
+        /// </summary>
+        /// <param name="provider"></param>
+        private void InitDiscordCommands(ServiceProvider provider)
+        {
+            DiscordClient discord = provider.GetRequiredService<DiscordClient>();
+            CommandsNextExtension commands = discord.UseCommandsNext(new CommandsNextConfiguration()
+            {
+                EnableDms = false,
+                StringPrefixes = new[] { "c!" },
+                EnableMentionPrefix = false,
+                Services = provider
+            });
+
+            commands.RegisterCommands(Assembly.GetExecutingAssembly());
+            commands.SetHelpFormatter<CustomHelpFormatter>();
+        }
+
+        /// <summary>
+        /// Configures the services for the <see cref="ServiceCollection"/> given.
+        /// </summary>
+        private void ConfigureServices(ServiceCollection services)
+        {
+            services.AddMassTransit(opt =>
+            {
+                opt.UsingRabbitMq((context, config) => InitRabbit(context, config));
+            });
+            services.AddSingleton<DiscordClient>(x => new DiscordClient(new DiscordConfiguration()
+            {
+                Token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN"),
+                Intents = DiscordIntents.All, // Discord does not know how to manage their intents properly.
+                TokenType = TokenType.Bot,
+                AlwaysCacheMembers = false
+            }));
+            services.AddScoped<ColorIntentConsumer>();
         }
 
         private async Task Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs e)
@@ -92,7 +109,6 @@ namespace Colorful.Discord
                 await Task.Delay(TimeSpan.FromMinutes(5));
             }
         }
-
 
         private async Task RemoveUnused(DiscordClient client)
         {
@@ -125,10 +141,10 @@ namespace Colorful.Discord
         private void InitRabbit(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator config)
         {
             config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"), "/", settings =>
-              {
-                  settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
-                  settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
-              });
+            {
+                settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
+                settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
+            });
 
             config.ReceiveEndpoint(endpoint =>
             {
