@@ -1,4 +1,4 @@
-﻿using Colorful.Common;
+using Colorful.Common;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;

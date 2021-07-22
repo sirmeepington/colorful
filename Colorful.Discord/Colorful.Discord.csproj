@@ -5,8 +5,8 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="4.0.1" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.1" />
+    <PackageReference Include="DSharpPlus" Version="4.1.0-nightly-00927" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.1.0-nightly-00927" />
     <PackageReference Include="MassTransit" Version="7.2.0" />
     <PackageReference Include="MassTransit.Extensions.DependencyInjection" Version="7.2.0" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="7.2.0" />
