@@ -5,6 +5,7 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /src
+COPY ["NuGet.Config", ""]
 COPY ["Colorful.Discord/Colorful.Discord.csproj", "Colorful.Discord/"]
 COPY ["Colorful.Common/Colorful.Common.csproj", "Colorful.Common/"]
 RUN dotnet restore "Colorful.Discord/Colorful.Discord.csproj"
