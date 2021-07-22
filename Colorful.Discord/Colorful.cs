@@ -1,10 +1,11 @@
-﻿using Colorful.Common;
+using Colorful.Common;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using MassTransit;
 using MassTransit.RabbitMqTransport;
 using Microsoft.Extensions.DependencyInjection;
+using Sentry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,27 +25,33 @@ namespace Colorful.Discord
 
         private async Task MainAsync()
         {
-            ServiceCollection services = new ServiceCollection();
-            ConfigureServices(services);
-            ServiceProvider serviceProvider = services.BuildServiceProvider();
-
-            var discord = serviceProvider.GetRequiredService<DiscordClient>();
-            IBusControl bus = serviceProvider.GetRequiredService<IBusControl>();
-
-            InitDiscordCommands(serviceProvider);
-            discord.Ready += Ready;
-
-            try
+            using (SentrySdk.Init(o =>
             {
-                await bus.StartAsync();
-                await discord.ConnectAsync();
-                await Task.Delay(Timeout.Infinite);
-            }
-            finally
+                o.Dsn = Environment.GetEnvironmentVariable("SENTRY_DSN");
+                o.TracesSampleRate = 0.4f;
+            }))
             {
-                await bus.StopAsync();
-            }
+                ServiceCollection services = new ServiceCollection();
+                ConfigureServices(services);
+                ServiceProvider serviceProvider = services.BuildServiceProvider();
 
+                var discord = serviceProvider.GetRequiredService<DiscordClient>();
+                IBusControl bus = serviceProvider.GetRequiredService<IBusControl>();
+
+                InitDiscordCommands(serviceProvider);
+                discord.Ready += Ready;
+
+                try
+                {
+                    await bus.StartAsync();
+                    await discord.ConnectAsync();
+                    await Task.Delay(Timeout.Infinite);
+                }
+                finally
+                {
+                    await bus.StopAsync();
+                }
+            }
         }
 
         /// <summary>
@@ -120,7 +127,7 @@ namespace Colorful.Discord
             Console.WriteLine($"Removed unused color roles.");
         }
 
-        private Task CleanGuildRoles(DiscordGuild guild)
+        private async Task CleanGuildRoles(DiscordGuild guild)
         {
             Console.WriteLine($"Looking at guild {guild.Name}");
 
@@ -135,7 +142,20 @@ namespace Colorful.Discord
 
             IEnumerable<DiscordRole> unusedRoles = allColorRoles.Except(allUsedRoles);
 
-            return Task.WhenAll(unusedRoles.Select(r => r.DeleteAsync()));
+            foreach(var r in unusedRoles)
+            {
+                try
+                {
+                    await r.DeleteAsync();
+                } catch (InvalidOperationException ex)
+                {
+                    SentrySdk.CaptureException(ex);
+                } catch (DSharpPlus.Exceptions.UnauthorizedException)
+                {
+                    SentrySdk.CaptureMessage($"Attempted to remove role without permission: {r} in {guild.Name} ({guild.Id})", SentryLevel.Warning);
+                    continue;
+                }
+            } 
         }
 
         private void InitRabbit(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator config)

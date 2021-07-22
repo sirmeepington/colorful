@@ -2,6 +2,7 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using MassTransit;
+using Sentry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,6 +42,7 @@ namespace Colorful.Discord
                 catch
                 {
                     Console.WriteLine($"Can't find guild or member specified: {msg.Guild} - {msg.UserId}");
+                    SentrySdk.CaptureMessage($"Failed to find provided guild or member: {msg.Guild}/{msg.UserId}");
                     return;
                 }
 
@@ -163,6 +165,7 @@ namespace Colorful.Discord
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Failed to remove previous role: {cRole.Name}. Msg: {ex.Message}");
+                    SentrySdk.CaptureException(ex);
                 }
             }
 
@@ -185,9 +188,10 @@ namespace Colorful.Discord
                     reason: "Color Role"
                 );
             }
-            catch
+            catch (Exception ex)
             {
                 Console.WriteLine("Failed to create role for color " + color + " in guild: " + guild.Name);
+                SentrySdk.CaptureException(ex);
                 return (false, null);
             }
 
