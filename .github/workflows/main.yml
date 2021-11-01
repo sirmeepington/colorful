@@ -33,3 +33,23 @@ jobs:
 
       - name: Compile
         run: dotnet build Colorful.sln
+
+  build-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Build Discord
+        uses: docker/build-push-action@v2.7.0
+        with:
+          file: Colorful.Discord/Dockerfile
+          context: .
+          push: false
+          
+      - name: Build Web
+        uses: docker/build-push-action@v2.7.0
+        with:
+          file: Colorful.Web/Dockerfile
+          context: .
+          push: false
+        
