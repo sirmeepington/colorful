@@ -32,4 +32,4 @@ jobs:
           dotnet-version: '5.0.x'
 
       - name: Compile
-        run: dotnet build
+        run: dotnet build Colorful.sln
