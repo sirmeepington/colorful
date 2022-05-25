@@ -72,7 +72,7 @@ namespace Colorful.Web
 
         private void InitRabbit(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator config)
         {
-            config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"), "/", settings =>
+            config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"), Environment.GetEnvironmentVariable("RABBIT_VHOST") ?? "/", settings =>
             {
                 settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
                 settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
