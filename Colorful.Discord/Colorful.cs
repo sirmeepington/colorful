@@ -1,15 +1,13 @@
 using Colorful.Common;
 using DSharpPlus;
-using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
+using DSharpPlus.SlashCommands;
 using MassTransit;
-using MassTransit.RabbitMqTransport;
 using Microsoft.Extensions.DependencyInjection;
 using Sentry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -61,16 +59,12 @@ namespace Colorful.Discord
         private void InitDiscordCommands(ServiceProvider provider)
         {
             DiscordClient discord = provider.GetRequiredService<DiscordClient>();
-            CommandsNextExtension commands = discord.UseCommandsNext(new CommandsNextConfiguration()
+            var commands = discord.UseSlashCommands(new SlashCommandsConfiguration()
             {
-                EnableDms = false,
-                StringPrefixes = new[] { "c!" },
-                EnableMentionPrefix = false,
                 Services = provider
             });
 
-            commands.RegisterCommands(Assembly.GetExecutingAssembly());
-            commands.SetHelpFormatter<CustomHelpFormatter>();
+            commands.RegisterCommands<ColorfulCommands>(309942855374340097);
         }
 
         /// <summary>
@@ -80,14 +74,23 @@ namespace Colorful.Discord
         {
             services.AddMassTransit(opt =>
             {
-                opt.UsingRabbitMq((context, config) => InitRabbit(context, config));
+                opt.AddConsumer<ColorIntentConsumer>(typeof(ColorIntentConsumerDefinition));
+                opt.UsingRabbitMq((context, config) =>
+                {
+                    config.ConfigureEndpoints(context);
+                    config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"), Environment.GetEnvironmentVariable("RABBIT_VHOST") ?? "/", settings =>
+                    {
+                        settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
+                        settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
+                    });
+                });
             });
-            services.AddSingleton<DiscordClient>(x => new DiscordClient(new DiscordConfiguration()
+            services.AddSingleton(x => new DiscordClient(new DiscordConfiguration()
             {
                 Token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN"),
-                Intents = DiscordIntents.All, // Discord does not know how to manage their intents properly.
+                Intents = DiscordIntents.Guilds | DiscordIntents.GuildMembers, // Discord does not know how to manage their intents properly.
                 TokenType = TokenType.Bot,
-                AlwaysCacheMembers = false
+                AlwaysCacheMembers = false,
             }));
             services.AddScoped<ColorIntentConsumer>();
         }
@@ -97,6 +100,7 @@ namespace Colorful.Discord
             CheckUnused(sender);
 
             await sender.UpdateStatusAsync(new DiscordActivity() { ActivityType = ActivityType.Playing, Name = "@ clrful.xyz"});
+            Console.WriteLine("Ready. Providing color roles for " + sender.Guilds.Count + " guilds");
         }
 
         private async Task CheckUnused(DiscordClient client)
@@ -121,7 +125,7 @@ namespace Colorful.Discord
         {
             foreach (ulong gid in client.Guilds.Keys)
             {
-                var guild = await client.GetGuildAsync(gid);
+                var guild = await client.GetGuildAsync(gid, true);
                 await CleanGuildRoles(guild);
             }
             Console.WriteLine($"Removed unused color roles.");
@@ -129,8 +133,6 @@ namespace Colorful.Discord
 
         private async Task CleanGuildRoles(DiscordGuild guild)
         {
-            Console.WriteLine($"Looking at guild {guild.Name}");
-
             List<DiscordRole> allColorRoles = guild.Roles.Values
                 .Where(x => Color.HEX_COLOR_REGEX.IsMatch(x.Name))
                 .ToList();
@@ -138,6 +140,7 @@ namespace Colorful.Discord
             List<DiscordRole> allUsedRoles = guild.Members.Values
                 .SelectMany(m => m.Roles)
                 .Where(x => Color.HEX_COLOR_REGEX.IsMatch(x.Name))
+                .Distinct()
                 .ToList();
 
             IEnumerable<DiscordRole> unusedRoles = allColorRoles.Except(allUsedRoles);
@@ -156,21 +159,6 @@ namespace Colorful.Discord
                     continue;
                 }
             } 
-        }
-
-        private void InitRabbit(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator config)
-        {
-            config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"), Environment.GetEnvironmentVariable("RABBIT_VHOST") ?? "/", settings =>
-            {
-                settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
-                settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
-            });
-
-            config.ReceiveEndpoint(endpoint =>
-            {
-                endpoint.Bind<IColorIntent>();
-                endpoint.Consumer<ColorIntentConsumer>(context);
-            });
         }
     }
 }

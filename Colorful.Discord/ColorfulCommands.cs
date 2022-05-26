@@ -1,7 +1,8 @@
 ﻿using Colorful.Common;
-using DSharpPlus.CommandsNext;
-using DSharpPlus.CommandsNext.Attributes;
+using DSharpPlus;
 using DSharpPlus.Entities;
+using DSharpPlus.SlashCommands;
+using DSharpPlus.SlashCommands.Attributes;
 using MassTransit;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
@@ -16,7 +17,7 @@ namespace Colorful.Discord
     /// <summary>
     /// Command class for use with DSharpPlus.CommandsNext
     /// </summary>
-    public class ColorfulCommands : BaseCommandModule
+    public class ColorfulCommands : ApplicationCommandModule
     {
         /// <summary>
         /// Mass Transit Bus created via DI.
@@ -29,16 +30,14 @@ namespace Colorful.Discord
         /// <param name="ctx">The command's context, populated via DSharpPlus</param>
         /// <param name="hexColor">A hex color string that fits the 
         /// <see cref="Color.HEX_COLOR_REGEX"/> regex.</param>
-        [Command("role")]
-        [Aliases("rolecolor","colorrole")]
-        [Description("Gives a color role from the given hex. Creates the role if it does not exist. Moves new roles as high as possible.")]
-        [Cooldown(1, 30d, CooldownBucketType.User)]
-        [RequireBotPermissions(DSharpPlus.Permissions.ManageRoles)]
-        public async Task RoleColor(CommandContext ctx, string hexColor)
+        [SlashCommand(name: "role", description: "Gives / creates a color role from the given hex. Moves new roles as high as possible.")]
+        [SlashRequireBotPermissions(Permissions.ManageRoles)]
+        public async Task RoleColor(InteractionContext ctx, [Option("color", "Hex color code including the hashtag.")] string hexColor)
         {
             if (!Color.HEX_COLOR_REGEX.IsMatch(hexColor))
             {
-                await ctx.RespondAsync("Please specify a hex color, hashtag included (`#FFFFFF`).");
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, 
+                    new DiscordInteractionResponseBuilder().WithContent("Please specify a hex color, hashtag included (`#FFFFFF`).").AsEphemeral());
                 return;
             }
             Color color = new Color(hexColor);
@@ -46,14 +45,21 @@ namespace Colorful.Discord
             if (color.Hex == "#000000") // Discord does NOT like #000000, it resets it to no color.
                 color = new Color("#111111");
 
-            await Bus.Publish<IColorIntent>(new ColorIntent() 
+
+            await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, 
+                new DiscordInteractionResponseBuilder().WithContent("Setting role. Please wait.").AsEphemeral());
+
+            DiscordMessage msg = await ctx.GetOriginalResponseAsync();
+
+            await Bus.Publish<IColorIntent>(new ColorIntent()
             {
                 Guild = ctx.Guild.Id,
                 UserId = ctx.User.Id,
                 Color = color,
                 ChannelId = ctx.Channel.Id,
-                MessageId = ctx.Message.Id
+                MessageId = msg.Id
             });
+
         }
 
         /// <summary>
@@ -62,17 +68,18 @@ namespace Colorful.Discord
         /// <param name="ctx">The command context, populated via DSharpPlus</param>
         /// <param name="hexColor">A hex string that matches the
         /// <see cref="Color.HEX_COLOR_REGEX"/> regex.</param>
-        [Command("color")]
-        [Description("Shows the color given from the hex code.")]
-        [Cooldown(1, 10d, CooldownBucketType.User)]
-        [RequireBotPermissions(DSharpPlus.Permissions.AttachFiles)]
-        public async Task ShowColor(CommandContext ctx, string hexColor) 
+        [SlashCommand(name: "color", description: "Shows the color given from the hex code.")]
+        [SlashRequireBotPermissions(DSharpPlus.Permissions.AttachFiles)]
+        public async Task ShowColor(InteractionContext ctx, [Option("color", "Hex color code including the hashtag.")] string hexColor) 
         {
             if (!Color.HEX_COLOR_REGEX.IsMatch(hexColor))
             {
-                await ctx.RespondAsync("Please specify a hex color, hashtag included (`#FFFFFF`).");
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder().WithContent("Please specify a hex color, hashtag included (`#FFFFFF`).").AsEphemeral());
                 return;
             }
+
+            await ctx.DeferAsync();
             Color color = new Color(hexColor);
 
             using Image<Rgba32> image = new Image<Rgba32>(64, 64, new Rgba32(color.Red, color.Green, color.Blue));
@@ -82,11 +89,9 @@ namespace Colorful.Discord
 
             stream.Seek(0, SeekOrigin.Begin);
 
-            DiscordMessageBuilder builder = new DiscordMessageBuilder();
-            builder.WithFile($"{color.Hex}.png", stream);
-            builder.WithContent($"Here's `{color.Hex}` (`{color.Red}`, `{color.Green}`, `{color.Blue}`):");
-
-            await ctx.RespondAsync(builder);
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder()
+                .AddFile($"color_{hexColor}.png", stream)
+                .WithContent($"Here's `{color.Hex}` (`{color.Red}`, `{color.Green}`, `{color.Blue}`):"));
         }
 
     }
