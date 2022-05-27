@@ -46,8 +46,6 @@ namespace Colorful.Discord
                     return;
                 }
 
-                intent = await FindDiscordReference(msg, intent);
-
                 if (!await ValidatePermissions(intent))
                     return;
 
@@ -55,9 +53,8 @@ namespace Colorful.Discord
                 (bool created, DiscordRole role) = await GetOrCreateRole(color, intent.Guild);
                 intent.Role = role;
                 intent.RoleCreated = created;
-                if (intent.Role == null && intent.DiscordReferenceFound)
+                if (!created)
                 {
-                    await intent.Channel.SendMessageAsync($"Cannot create color role `{color.Hex}`. Check that I can create roles, etc.");
                     return;
                 }
 
@@ -69,23 +66,6 @@ namespace Colorful.Discord
                 Console.WriteLine("cant do it big man");
                 Console.WriteLine(ex.Message);
             }
-        }
-
-        private async Task<IntentContext> FindDiscordReference(IColorIntent msg, IntentContext intent)
-        {
-            if (msg.ChannelId != 0 && msg.MessageId != 0)
-            {
-                try
-                {
-                    intent.Channel = await _client.GetChannelAsync(msg.ChannelId);
-                    intent.Message = await intent.Channel.GetMessageAsync(msg.MessageId);
-                }
-                catch
-                {
-                    Console.WriteLine("Can't find the channel or message the intent was created from. Returning to silent.");
-                }
-            }
-            return intent;
         }
 
         /// <summary>
@@ -102,7 +82,7 @@ namespace Colorful.Discord
                 string create = context.RoleCreated ? $"Added color role for `{color.Hex}` to the server." : "";
                 DiscordRole lastColor = colorRoles.FirstOrDefault();
                 string replace = lastColor == null ? "" : $"Replaced from `{lastColor.Name}`";
-                await context.Message.RespondAsync($"{create} Your color has been updated to `{color.Hex}`, {context.Member.Mention}. {replace}");
+                await context.Message.ModifyAsync($"{create} Your color has been updated to `{color.Hex}`, {context.Member.Mention}. {replace}");
             }
         }
 

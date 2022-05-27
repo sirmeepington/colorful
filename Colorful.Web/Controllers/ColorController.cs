@@ -1,7 +1,6 @@
 ﻿using Colorful.Common;
 using Colorful.Web.Models;
 using Colorful.Web.Models.DiscordApi;
-using Colorful.Web.Models.Webhook;
 using Colorful.Web.Services;
 using DSharpPlus.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -20,13 +19,11 @@ namespace Colorful.Web.Controllers
     {
         private readonly IUpdaterService _updaterService;
         private readonly IDiscordService _discordService;
-        private readonly Webhook _webhook;
 
-        public ColorController(IDiscordService discordService, IUpdaterService updaterService, Webhook webhook)
+        public ColorController(IDiscordService discordService, IUpdaterService updaterService)
         {
             _discordService = discordService;
             _updaterService = updaterService;
-            _webhook = webhook;
         }
 
         public async Task<IActionResult> Index()
@@ -132,7 +129,6 @@ namespace Colorful.Web.Controllers
         /// current user out of the session.</returns>
         private async Task<IActionResult> SendWarning(ClaimsPrincipal user)
         {
-            await _webhook.Send($"User {user.FindFirstValue(ClaimTypes.Name)} ({user.FindFirstValue(ClaimTypes.NameIdentifier)}) has messed with Ids.");
             return RedirectToAction(nameof(AuthenticationController.SignOutCurrentUser), "Authentication");
         }
 

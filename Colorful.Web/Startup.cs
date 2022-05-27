@@ -1,7 +1,5 @@
-using Colorful.Web.Models.Webhook;
 using Colorful.Web.Services;
 using MassTransit;
-using MassTransit.RabbitMqTransport;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -22,14 +20,20 @@ namespace Colorful.Web
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddRazorPages();
 
             services.AddMassTransit(opt =>
             {
-                opt.UsingRabbitMq((context, config) => InitRabbit(context, config));
+                opt.UsingRabbitMq((context, config) =>
+                {
+                    config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"), Environment.GetEnvironmentVariable("RABBIT_VHOST") ?? "/", settings =>
+                    {
+                        settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
+                        settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
+                    });
+                });
             });
 
             services.AddMassTransitHostedService();
@@ -38,48 +42,32 @@ namespace Colorful.Web
 
             services.AddSingleton<IDiscordService,DiscordService>();
 
-            services.AddSingleton<Webhook>(x => 
-                    new Webhook(
-                        ulong.Parse(Environment.GetEnvironmentVariable("WEBHOOK_ID")),
-                        Environment.GetEnvironmentVariable("WEBHOOK_TOKEN")
-                        ));
-
             services.AddScoped<IUpdaterService,UpdaterService>();
 
             services.AddAuthentication(options =>
             {
                 options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             })
-                .AddCookie(cookieOpt =>
-                {
-                    cookieOpt.ExpireTimeSpan = TimeSpan.FromDays(7);
-                    cookieOpt.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-                    cookieOpt.Cookie.Name = "Colorful_Discord_Token";
-                    cookieOpt.LoginPath = "/signin";
-                    cookieOpt.LogoutPath = "/signout";
-                })
-                .AddDiscord(opt =>
-                {
-                    opt.ClientId = Environment.GetEnvironmentVariable("DISCORD_APP_CLIENT_ID");
-                    opt.ClientSecret = Environment.GetEnvironmentVariable("DISCORD_APP_CLIENT_SECRET");
-                    opt.Scope.Add("guilds");
-                    opt.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-                    opt.AccessDeniedPath = "/";
-                });
+            .AddCookie(cookieOpt =>
+            {
+                cookieOpt.ExpireTimeSpan = TimeSpan.FromDays(7);
+                cookieOpt.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+                cookieOpt.Cookie.Name = "Colorful_Discord_Token";
+                cookieOpt.LoginPath = "/signin";
+                cookieOpt.LogoutPath = "/signout";
+            })
+            .AddDiscord(opt =>
+            {
+                opt.ClientId = Environment.GetEnvironmentVariable("DISCORD_APP_CLIENT_ID");
+                opt.ClientSecret = Environment.GetEnvironmentVariable("DISCORD_APP_CLIENT_SECRET");
+                opt.Scope.Add("guilds");
+                opt.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+                opt.AccessDeniedPath = "/";
+            });
 
             services.AddCors();
         }
 
-        private void InitRabbit(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator config)
-        {
-            config.Host(Environment.GetEnvironmentVariable("RABBIT_HOST"), Environment.GetEnvironmentVariable("RABBIT_VHOST") ?? "/", settings =>
-            {
-                settings.Username(Environment.GetEnvironmentVariable("RABBIT_USER"));
-                settings.Password(Environment.GetEnvironmentVariable("RABBIT_PASS"));
-            });
-        }
-
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             app.UseForwardedHeaders(new ForwardedHeadersOptions()
@@ -94,7 +82,6 @@ namespace Colorful.Web
             else
             {
                 app.UseExceptionHandler("/");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
