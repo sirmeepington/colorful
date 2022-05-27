@@ -26,6 +26,11 @@
         flex-direction: column;
     }
 
+    .server-icon {
+        max-height:128px;
+        max-width:128px;
+    }
+
     img {
         border-radius: 15%;
     }
@@ -49,7 +54,7 @@
                 <a href="/color/guild/@server.Id">
                     <div>
                         <div class="d-flex justify-content-center">
-                            <img src="@server.IconUrl" />
+                            <img class="server-icon" src="@server.IconUrl" />
                         </div>
                         <div>
                             <span class="lead text-light" style="text-align:center;">@server.Name</span>

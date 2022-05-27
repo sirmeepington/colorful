@@ -1,7 +1,4 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@model Colorful.Web.Models.GuildColorViewModel
+﻿@model Colorful.Web.Models.GuildColorViewModel
 @{
     ViewData["Title"] = Model.Guild.Name;
 }
@@ -14,6 +11,8 @@
     .server-icon {
         border-radius: 15%;
         border: 2px solid white;
+        max-height:128px;
+        max-width:128px;
     }
 
     .colorblock {
