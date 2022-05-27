@@ -64,7 +64,7 @@ namespace Colorful.Discord
                 Services = provider
             });
 
-            commands.RegisterCommands<ColorfulCommands>(309942855374340097);
+            commands.RegisterCommands<ColorfulCommands>();
         }
 
         /// <summary>
