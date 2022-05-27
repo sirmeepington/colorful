@@ -15,6 +15,9 @@ namespace Colorful.Discord
 {
     public class Colorful
     {
+
+        private bool _checking;
+
         public static void Main(string[] args)
         {
             Colorful colorful = new Colorful();
@@ -105,6 +108,10 @@ namespace Colorful.Discord
 
         private async Task CheckUnused(DiscordClient client)
         {
+            if (_checking)
+                return;
+
+            _checking = true;
             while (true)
             {
                 Console.WriteLine("Attempting to remove unused color roles.");
