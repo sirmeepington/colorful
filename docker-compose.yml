@@ -13,8 +13,6 @@ services:
       - RABBIT_HOST=${RABBIT_HOST}
       - RABBIT_USER=${RABBIT_USER}
       - RABBIT_PASS=${RABBIT_PASS}
-      - WEBHOOK_ID=${WEBHOOK_ID}
-      - WEBHOOK_TOKEN=${WEBHOOK_TOKEN}
   
   colorful.discord:
     image: ${DOCKER_REGISTRY-}colorfuldiscord
