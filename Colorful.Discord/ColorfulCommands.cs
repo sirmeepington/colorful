@@ -34,10 +34,8 @@ namespace Colorful.Discord
         [SlashRequireBotPermissions(Permissions.ManageRoles)]
         public async Task RoleColor(InteractionContext ctx, [Option("color", "Hex color code including the hashtag.")] string hexColor)
         {
-            if (!Color.HEX_COLOR_REGEX.IsMatch(hexColor))
+            if (!await CheckValidColor(ctx, hexColor))
             {
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, 
-                    new DiscordInteractionResponseBuilder().WithContent("Please specify a hex color, hashtag included (`#FFFFFF`).").AsEphemeral());
                 return;
             }
             Color color = new Color(hexColor);
@@ -72,10 +70,8 @@ namespace Colorful.Discord
         [SlashRequireBotPermissions(DSharpPlus.Permissions.AttachFiles)]
         public async Task ShowColor(InteractionContext ctx, [Option("color", "Hex color code including the hashtag.")] string hexColor) 
         {
-            if (!Color.HEX_COLOR_REGEX.IsMatch(hexColor))
+            if (!await CheckValidColor(ctx, hexColor))
             {
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
-                    new DiscordInteractionResponseBuilder().WithContent("Please specify a hex color, hashtag included (`#FFFFFF`).").AsEphemeral());
                 return;
             }
 
@@ -94,5 +90,27 @@ namespace Colorful.Discord
                 .WithContent($"Here's `{color.Hex}` (`{color.Red}`, `{color.Green}`, `{color.Blue}`):"));
         }
 
+        /// <summary>
+        /// Checks that the provided <paramref name="hexColor"/> is valid.
+        /// <br/>
+        /// Creates a response in the <paramref name="ctx"/> if it isn't.
+        /// <br/>
+        /// This method requires the hashtag in the hex color for it to be valid.
+        /// </summary>
+        /// <param name="ctx">The <see cref="InteractionContext"/> of the slash command</param>
+        /// <param name="hexColor">The hex color to check against <see cref="Color.HEX_COLOR_REGEX"/></param>
+        /// <returns>Whether the given <paramref name="hexColor"/> is a valid hex color.</returns>
+
+        private async Task<bool> CheckValidColor(InteractionContext ctx, string hexColor)
+        {
+            if (!Color.HEX_COLOR_REGEX.IsMatch(hexColor))
+            {
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder().WithContent("Please specify a hex color, hashtag included (`#FFFFFF`).").AsEphemeral());
+                return false;
+            }
+            return true;
+        }
     }
+
 }
