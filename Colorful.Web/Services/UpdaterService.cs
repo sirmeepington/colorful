@@ -1,5 +1,6 @@
 ﻿using Colorful.Common;
 using MassTransit;
+using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
 namespace Colorful.Web.Services
@@ -8,10 +9,12 @@ namespace Colorful.Web.Services
     public class UpdaterService : IUpdaterService
     {
         private readonly IBusControl _messageBus;
+        private readonly ILogger<UpdaterService> _logger;
 
-        public UpdaterService(IBusControl messageBus)
+        public UpdaterService(IBusControl messageBus, ILogger<UpdaterService> logger)
         {
             _messageBus = messageBus;
+            _logger = logger;
         }
 
 
@@ -26,6 +29,8 @@ namespace Colorful.Web.Services
                 Guild = guild,
                 UserId = user
             });
+
+            _logger.LogInformation("Sending color intent for color {color} for user {user} in guild {guild}.", hex, user, guild);
 
         }
 

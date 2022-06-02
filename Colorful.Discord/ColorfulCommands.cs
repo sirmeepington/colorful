@@ -4,6 +4,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.SlashCommands.Attributes;
 using MassTransit;
+using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
@@ -23,6 +24,8 @@ namespace Colorful.Discord
         /// Mass Transit Bus created via DI.
         /// </summary>
         public IBusControl Bus { private get; set; }
+
+        public ILogger<ColorfulCommands> Logger { private get; set; }
 
         /// <summary>
         /// Assigns a role color to the user from the <paramref name="hexColor"/> specified.
@@ -49,6 +52,8 @@ namespace Colorful.Discord
 
             DiscordMessage msg = await ctx.GetOriginalResponseAsync();
 
+            Logger.LogInformation("Sending color intent for color {color} in guild {guild} for member {member}",color,ctx.Guild.Id,ctx.User.Id);
+
             await Bus.Publish<IColorIntent>(new ColorIntent()
             {
                 Guild = ctx.Guild.Id,
@@ -57,6 +62,7 @@ namespace Colorful.Discord
                 ChannelId = ctx.Channel.Id,
                 MessageId = msg.Id
             });
+            
 
         }
 

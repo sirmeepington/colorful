@@ -1,13 +1,14 @@
 using Colorful.Common;
 using DSharpPlus;
 using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Sentry;
+using Serilog;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,9 +17,9 @@ namespace Colorful.Discord
     public class Colorful
     {
 
-        private bool _checking;
+        private ILogger<Colorful> _logger;
 
-        public static void Main(string[] args)
+        public static void Main()
         {
             Colorful colorful = new Colorful();
             colorful.MainAsync().GetAwaiter().GetResult();
@@ -30,28 +31,27 @@ namespace Colorful.Discord
             {
                 o.Dsn = Environment.GetEnvironmentVariable("SENTRY_DSN");
                 o.TracesSampleRate = 0.4f;
-            }))
+            }));
+            ServiceCollection services = new();
+            ConfigureServices(services);
+            ServiceProvider serviceProvider = services.BuildServiceProvider();
+            _logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<Colorful>();
+
+            var discord = serviceProvider.GetRequiredService<DiscordClient>();
+            IBusControl bus = serviceProvider.GetRequiredService<IBusControl>();
+
+            InitDiscordCommands(serviceProvider);
+            discord.Ready += Ready;
+
+            try
             {
-                ServiceCollection services = new ServiceCollection();
-                ConfigureServices(services);
-                ServiceProvider serviceProvider = services.BuildServiceProvider();
-
-                var discord = serviceProvider.GetRequiredService<DiscordClient>();
-                IBusControl bus = serviceProvider.GetRequiredService<IBusControl>();
-
-                InitDiscordCommands(serviceProvider);
-                discord.Ready += Ready;
-
-                try
-                {
-                    await bus.StartAsync();
-                    await discord.ConnectAsync();
-                    await Task.Delay(Timeout.Infinite);
-                }
-                finally
-                {
-                    await bus.StopAsync();
-                }
+                await bus.StartAsync();
+                await discord.ConnectAsync();
+                await Task.Delay(Timeout.Infinite);
+            }
+            finally
+            {
+                await bus.StopAsync();
             }
         }
 
@@ -88,6 +88,13 @@ namespace Colorful.Discord
                     });
                 });
             });
+
+            Log.Logger = new LoggerConfiguration().Enrich.FromLogContext().WriteTo.Console().CreateLogger();
+            services.AddLogging(x =>
+            {
+                x.AddSerilog(dispose: true);
+            });
+
             services.AddSingleton(x => new DiscordClient(new DiscordConfiguration()
             {
                 Token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN"),
@@ -98,74 +105,11 @@ namespace Colorful.Discord
             services.AddScoped<ColorIntentConsumer>();
         }
 
-        private async Task Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs e)
+        private async Task Ready(DiscordClient sender, ReadyEventArgs e)
         {
-            CheckUnused(sender);
-
             await sender.UpdateStatusAsync(new DiscordActivity() { ActivityType = ActivityType.Playing, Name = "@ clrful.xyz"});
-            Console.WriteLine("Ready. Providing color roles for " + sender.Guilds.Count + " guilds");
+            _logger.LogInformation("Ready. Providing color roles for {guildCount} guilds", sender.Guilds.Count);
         }
-
-        private async Task CheckUnused(DiscordClient client)
-        {
-            if (_checking)
-                return;
-
-            _checking = true;
-            while (true)
-            {
-                Console.WriteLine("Attempting to remove unused color roles.");
-                try
-                {
-                    await RemoveUnused(client);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Removing unused colors failed: {ex.Message}");
-                }
-                Console.WriteLine("Finished removing unused roles.");
-                await Task.Delay(TimeSpan.FromMinutes(5));
-            }
-        }
-
-        private async Task RemoveUnused(DiscordClient client)
-        {
-            foreach (ulong gid in client.Guilds.Keys)
-            {
-                var guild = await client.GetGuildAsync(gid, true);
-                await CleanGuildRoles(guild);
-            }
-            Console.WriteLine($"Removed unused color roles.");
-        }
-
-        private async Task CleanGuildRoles(DiscordGuild guild)
-        {
-            List<DiscordRole> allColorRoles = guild.Roles.Values
-                .Where(x => Color.HEX_COLOR_REGEX.IsMatch(x.Name))
-                .ToList();
-
-            List<DiscordRole> allUsedRoles = guild.Members.Values
-                .SelectMany(m => m.Roles)
-                .Where(x => Color.HEX_COLOR_REGEX.IsMatch(x.Name))
-                .Distinct()
-                .ToList();
-
-            IEnumerable<DiscordRole> unusedRoles = allColorRoles.Except(allUsedRoles);
-
-            foreach(var r in unusedRoles)
-            {
-                try
-                {
-                    await r.DeleteAsync();
-                } catch (InvalidOperationException ex)
-                {
-                    SentrySdk.CaptureException(ex);
-                } catch (DSharpPlus.Exceptions.UnauthorizedException)
-                {
-                    SentrySdk.CaptureMessage($"Attempted to remove role without permission: {r} in {guild.Name} ({guild.Id})", SentryLevel.Warning);
-                    continue;
-                }
-            } 
-        }
+        
     }
 }

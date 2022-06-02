@@ -5,6 +5,7 @@ using Colorful.Web.Services;
 using DSharpPlus.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -19,11 +20,13 @@ namespace Colorful.Web.Controllers
     {
         private readonly IUpdaterService _updaterService;
         private readonly IDiscordService _discordService;
+        private readonly ILogger<ColorController> _logger;
 
-        public ColorController(IDiscordService discordService, IUpdaterService updaterService)
+        public ColorController(IDiscordService discordService, IUpdaterService updaterService, ILogger<ColorController> logger)
         {
             _discordService = discordService;
             _updaterService = updaterService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
@@ -100,7 +103,8 @@ namespace Colorful.Web.Controllers
 
             if (!await CheckValidity(model))
             {
-                return await SendWarning(User);
+                _logger.LogWarning("Validity check failed for {user} in {guild}", model.UserId, model.GuildId);
+                return RedirectToAction(nameof(Guild), new { guildId = model.GuildId });
             }
 
             string roleColor = model.NewColor;
@@ -119,17 +123,6 @@ namespace Colorful.Web.Controllers
 
             var guilds = await _discordService.GetGuildsInCommon(model.UserId);
             return guilds.Any(x => x.Id == model.GuildId);
-        }
-
-        /// <summary>
-        /// Sends a webhook warning about a user that is messing with the form
-        /// data.
-        /// </summary>
-        /// <returns>A <see cref="RedirectToActionResult"/> which logs the
-        /// current user out of the session.</returns>
-        private async Task<IActionResult> SendWarning(ClaimsPrincipal user)
-        {
-            return RedirectToAction(nameof(AuthenticationController.SignOutCurrentUser), "Authentication");
         }
 
     }

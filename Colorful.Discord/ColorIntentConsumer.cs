@@ -2,6 +2,7 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using MassTransit;
+using Microsoft.Extensions.Logging;
 using Sentry;
 using System;
 using System.Collections.Generic;
@@ -15,11 +16,13 @@ namespace Colorful.Discord
     /// </summary>
     public class ColorIntentConsumer : IConsumer<IColorIntent>
     {
-        private DiscordClient _client;
+        private readonly DiscordClient _client;
+        private readonly ILogger<ColorIntentConsumer> _logger;
 
-        public ColorIntentConsumer(DiscordClient client)
+        public ColorIntentConsumer(DiscordClient client, ILogger<ColorIntentConsumer> logger)
         {
             _client = client;
+            _logger = logger;
         }
 
         /// <summary>
@@ -33,6 +36,7 @@ namespace Colorful.Discord
                 IColorIntent msg = context.Message;
                 Color color = msg.Color;
                 IntentContext intent = new IntentContext();
+                _logger.LogInformation("Received new color intent message.");
 
                 try
                 {
@@ -41,7 +45,7 @@ namespace Colorful.Discord
                 }
                 catch
                 {
-                    Console.WriteLine($"Can't find guild or member specified: {msg.Guild} - {msg.UserId}");
+                    _logger.LogError("Failed to find guild or member: {guild},{member}", msg.Guild, msg.UserId);
                     SentrySdk.CaptureMessage($"Failed to find provided guild or member: {msg.Guild}/{msg.UserId}");
                     return;
                 }
@@ -53,19 +57,56 @@ namespace Colorful.Discord
                 (bool created, DiscordRole role) = await GetOrCreateRole(color, intent.Guild);
                 intent.Role = role;
                 intent.RoleCreated = created;
-                if (!created)
+                if (created)
                 {
-                    return;
+                    _logger.LogInformation("Created new color role: {color} in guild.", color);
                 }
 
-                List<DiscordRole> colorRoles = await RemovePreviousRoles(intent.Member);
-                await AssignNewRole(color, intent, colorRoles);
+                await RemovePreviousRoles(intent.Member);
+                await AssignNewRole(color, intent);
+                await CleanGuildRoles(intent.Guild);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("cant do it big man");
-                Console.WriteLine(ex.Message);
+                _logger.LogError(ex,"Failed to assign color:");
             }
+        }
+
+        private async Task CleanGuildRoles(DiscordGuild guild)
+        {
+            _logger.LogInformation("Cleaning up color roles in guild {guild}", guild.Id);
+            List<DiscordRole> allColorRoles = guild.Roles.Values
+                .Where(x => Color.HEX_COLOR_REGEX.IsMatch(x.Name))
+                .ToList();
+
+            var members = await guild.GetAllMembersAsync();
+
+            List<DiscordRole> allUsedRoles = members
+                .SelectMany(m => m.Roles)
+                .Where(x => Color.HEX_COLOR_REGEX.IsMatch(x.Name))
+                .ToList();
+
+            IEnumerable<DiscordRole> unusedRoles = allColorRoles.Except(allUsedRoles);
+
+            foreach (var r in unusedRoles)
+            {
+                try
+                {
+                    await r.DeleteAsync();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogError(ex,"Failed to clean guild roles for {guildId}", guild.Id);
+                    SentrySdk.CaptureException(ex);
+                }
+                catch (DSharpPlus.Exceptions.UnauthorizedException)
+                {
+                    _logger.LogWarning("Attempted to clean roles in {guild} without Manage Roles permission.", guild.Id);
+                    SentrySdk.CaptureMessage($"Attempted to remove role without permission: {r} in {guild.Name} ({guild.Id})", SentryLevel.Warning);
+                    continue;
+                }
+            }
+            _logger.LogInformation("Cleaned up {cleanedCount} roles in guild {guildId}", unusedRoles.Count(), guild.Id);
         }
 
         /// <summary>
@@ -74,16 +115,10 @@ namespace Colorful.Discord
         /// <param name="color">The color to assign the role for.</param>
         /// <param name="context">The intent's context.</param>
         /// <param name="colorRoles">A list of color roles to find the previous role.</param>
-        private async Task AssignNewRole(Color color, IntentContext context, List<DiscordRole> colorRoles)
+        private async Task AssignNewRole(Color color, IntentContext context)
         {
             await context.Member.GrantRoleAsync(context.Role);
-            if (context.DiscordReferenceFound)
-            {
-                string create = context.RoleCreated ? $"Added color role for `{color.Hex}` to the server." : "";
-                DiscordRole lastColor = colorRoles.FirstOrDefault();
-                string replace = lastColor == null ? "" : $"Replaced from `{lastColor.Name}`";
-                await context.Message.ModifyAsync($"{create} Your color has been updated to `{color.Hex}`, {context.Member.Mention}. {replace}");
-            }
+            _logger.LogInformation("Assigned color role {color} to {user}", color.ToString(), context.Member.Id);
         }
 
         /// <summary>
@@ -99,7 +134,7 @@ namespace Colorful.Discord
             bool canManageRoles = perms == null ? await AnyRoleCanManageRoles(context) : perms.Value.HasPermission(Permissions.ManageRoles);
             if (!canManageRoles)
             {
-                Console.WriteLine($"Can't Manage Roles in {context.Guild.Name} so I can't create the color role.");
+                _logger.LogWarning("Manage Roles permission missing in {guild}. Role cannot be created.",context.Guild.Id);
                 return false;
             }
             return true;
@@ -144,11 +179,10 @@ namespace Colorful.Discord
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to remove previous role: {cRole.Name}. Msg: {ex.Message}");
+                    _logger.LogError(ex,"Failed to remove previous role: {roleName} in guild {guildId}",cRole.Name,member.Guild.Id);
                     SentrySdk.CaptureException(ex);
                 }
             }
-
             return colorRoles;
         }
 
@@ -170,7 +204,7 @@ namespace Colorful.Discord
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Failed to create role for color " + color + " in guild: " + guild.Name);
+                _logger.LogError(ex, "Failed to create role for color {color} in guild {guildId}", color, guild.Id);
                 SentrySdk.CaptureException(ex);
                 return (false, null);
             }

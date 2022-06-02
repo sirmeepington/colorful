@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Serilog;
 using System;
 
 namespace Colorful.Web
@@ -36,7 +37,10 @@ namespace Colorful.Web
                 });
             });
 
-            services.AddMassTransitHostedService();
+            services.AddOptions<MassTransitHostOptions>().Configure(x =>
+            {
+                x.WaitUntilStarted = true;
+            });
 
             services.AddAuthorization();
 
@@ -84,6 +88,8 @@ namespace Colorful.Web
                 app.UseExceptionHandler("/");
                 app.UseHsts();
             }
+
+            app.UseSerilogRequestLogging();
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
