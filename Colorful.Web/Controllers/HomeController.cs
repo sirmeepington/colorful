@@ -20,7 +20,7 @@ namespace Colorful.Web.Controllers
         [Route("~/invite")]
         public IActionResult Invite()
         {
-            return Redirect("https://discord.com/api/oauth2/authorize?client_id=460034890432512021&permissions=268470272&scope=bot");
+            return Redirect("https://discord.com/api/oauth2/authorize?client_id=460034890432512021&permissions=268470272&scope=bot%20applications.commands");
         }
     }
 }
